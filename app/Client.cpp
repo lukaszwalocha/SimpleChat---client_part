@@ -2,8 +2,20 @@
 #include "Client.h"
 
 
-Client::Client() {
+Client::Client(boost::asio::ip::tcp::endpoint endpoint, std::shared_ptr<boost::asio::ip::tcp::socket> socket)
+	: _endpoint(endpoint), _socket(socket), isNicknameDisplayed(false), isReadyToLeave(false), startingColourNumber(15)
+{
+	this->ioContext = std::make_shared<boost::asio::io_context>();
+
+	this->colourHandler = getRandomNumber();
 	this->hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	this->endpoint__2.address(boost::asio::ip::address::from_string("127.0.0.1"));
+    this->endpoint__2.port ( 1234);
+
+	this->endpoint__3.address ( boost::asio::ip::address::from_string("127.0.0.1"));
+	this->endpoint__3.port ( 1235);
+	
 }
 
 int Client::getRandomNumber() {
@@ -60,8 +72,56 @@ std::string Client::getNickname() {
 	return this->_nickname;
 }
 
+
+std::string Client::chooseRoom() {
+
+	std::cout << "Choose room: " << std::endl;
+	std::cout << "1. Gamers" << std::endl;
+	std::cout << "2. Anglers" << std::endl;
+	std::getline(std::cin, roomChoice, '\n');
+
+	if (roomChoice == "1" || roomChoice == "2") {
+		return roomChoice;
+	}
+	else {
+		std::cout << "There is no such an option. Please type again.";
+		return chooseRoom();
+	}
+
+}
+
+void Client::sendTokenMessage(std::string tokenMessage) {
+
+	tokenMessage += '\n';
+
+	boost::asio::write(*this->_socket, boost::asio::buffer(tokenMessage), this->ec);
+
+	std::cout<<this->_socket->local_endpoint()<<std::endl;
+}
+
+
 void Client::connectSocket() {
-	this->_socket->connect(this->_endpoint);
+
+	std::string choice = chooseRoom();
+
+	this->_socket->connect(this->_endpoint); // connecting to the main room endpoint
+
+	std::cout << "Connection with the main room established!" << std::endl;
+
+	if (choice == "1") {
+		
+		sendTokenMessage("connect to Gamers");
+		this->_socket.reset();
+		this->_socket = std::make_shared<boost::asio::ip::tcp::socket>(*this->ioContext);
+		this->_socket->connect(this->endpoint__2);
+	}
+	else if (choice == "2") {
+
+		sendTokenMessage("connect to Anglers");
+		this->_socket.reset();
+		this->_socket = std::make_shared<boost::asio::ip::tcp::socket>(*this->ioContext);
+		this->_socket->connect(this->endpoint__3);
+	}
 }
 
 void Client::writeToServer() {
@@ -87,7 +147,6 @@ void Client::writeToServer() {
 
 void Client::printMessage(std::string& msg) {
 
-
 	this->blocker.lock();
 
 	SetConsoleTextAttribute(this->hConsole, this->colourHandler);
@@ -95,6 +154,7 @@ void Client::printMessage(std::string& msg) {
 	SetConsoleTextAttribute(this->hConsole, this->startingColourNumber);
 
 	this->blocker.unlock();
+
 }
 
 void Client::printErr() {

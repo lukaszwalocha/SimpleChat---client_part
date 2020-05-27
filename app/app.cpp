@@ -9,7 +9,7 @@ int main() {
 
 	boost::asio::io_context ioContext;
 	std::shared_ptr<boost::asio::ip::tcp::socket> socket = std::make_shared<boost::asio::ip::tcp::socket>(ioContext);
-	boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 1234);
+	boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 1233);
 	Client clientObject(endpoint, socket);
 	
 	clientObject.connectSocket();
@@ -22,10 +22,11 @@ int main() {
 
 	while (true) {
 		try {
+			
 			if (!clientObject.isNicknameDisplayed) {
 				clientObject.sendInfo(" has joined the room.");
 			}
-
+			
 			ThreadingHandler::runNewThread(&ThreadingHandler::write, clientObject, writeThreadRunning);
 			ThreadingHandler::runNewThread(&ThreadingHandler::read, clientObject, readThreadRunning);
 
